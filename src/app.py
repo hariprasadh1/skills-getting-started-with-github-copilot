@@ -80,7 +80,7 @@ activities = {
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/static/index.html")
+    return RedirectResponse(url="/static/index.html", status_code=307)
 
 
 @app.get("/activities")
@@ -96,6 +96,35 @@ def signup_for_activity(activity_name: str, email: str):
 
     # Get the activity
     activity = activities[activity_name]
+
+    # Check if student is already registered
+    if email in activity["participants"]:
+        raise HTTPException(status_code=400, detail="Student is already registered for this activity")
+
+    # Check if activity is full
+    if len(activity["participants"]) >= activity["max_participants"]:
+        raise HTTPException(status_code=400, detail="Activity is full")
+
+    # Add the student to the activity
+    activity["participants"].append(email)
+    return {"message": f"Successfully signed up for {activity_name}"}
+
+@app.post("/activities/{activity_name}/unregister")
+def unregister_from_activity(activity_name: str, email: str):
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Get the activity
+    activity = activities[activity_name]
+
+    # Check if the student is registered
+    if email not in activity["participants"]:
+        raise HTTPException(status_code=400, detail="Student is not registered for this activity")
+
+    # Remove the student from the activity
+    activity["participants"].remove(email)
+    return {"message": f"Successfully unregistered from {activity_name}"}
 
     # Validate student is not already signed up
     if email in activity["participants"]:
